@@ -1,0 +1,94 @@
+{% extends 'finance/base.html' %}
+{% block title %}Fatura{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+  <h1 class="h3">Fatura {{ object.card.name }} {{ object.year }}-{{ object.month|stringformat:"02d" }}</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'finance:invoice_payment' object.pk %}" class="btn btn-sm btn-primary">Pagar</a>
+    {% if object.status == 'OPEN' or object.status == 'PARTIAL' %}
+    <form method="post" action="{% url 'finance:invoice_close' object.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-warning">Fechar Fatura</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+<div class="mb-3">
+  <span class="badge bg-secondary">Status: {{ object.get_status_display }}</span>
+  <span class="badge bg-info text-dark">Fechamento: {{ object.closing_date|default:"-" }}</span>
+  <span class="badge bg-info text-dark">Vencimento: {{ object.due_date|default:"-" }}</span>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <div class="text-muted">Total Compras</div>
+      <div class="fs-4">{{ object.total_charges }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <div class="text-muted">Pagamentos</div>
+      <div class="fs-4">{{ object.total_payments }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <div class="text-muted">Saldo</div>
+      <div class="fs-4">{{ object.balance }}</div>
+    </div></div>
+  </div>
+</div>
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h2 class="h5">Compras</h2>
+</div>
+<table class="table table-sm table-striped mb-4">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Descrição</th>
+      <th>Parcela</th>
+      <th>Categoria</th>
+      <th class="text-end">Valor</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in object.charges.all %}
+    <tr>
+      <td>{{ c.date }}</td>
+      <td>{{ c.description }}</td>
+      <td>{{ c.installment_number }}/{{ c.installments_total }}</td>
+      <td>{{ c.category|default:"-" }}</td>
+      <td class="text-end">{{ c.total_amount }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">Nenhuma compra nesta fatura.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h2 class="h5">Pagamentos</h2>
+  <a href="{% url 'finance:invoice_payment' object.pk %}" class="btn btn-sm btn-primary">Registrar Pagamento</a>
+</div>
+<table class="table table-sm table-striped">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Conta</th>
+      <th>Tipo</th>
+      <th class="text-end">Valor</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in object.payments.all %}
+    <tr>
+      <td>{{ p.date }}</td>
+      <td>{{ p.account.name }}</td>
+      <td>{{ p.get_kind_display }}</td>
+      <td class="text-end">{{ p.amount }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">Nenhum pagamento registrado.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

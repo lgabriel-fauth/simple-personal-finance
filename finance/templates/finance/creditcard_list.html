@@ -1,0 +1,39 @@
+{% extends 'finance/base.html' %}
+{% block title %}Cartões{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Cartões</h1>
+  <a href="{% url 'finance:card_create' %}" class="btn btn-primary">Novo Cartão</a>
+</div>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Bandeira</th>
+      <th>Limite</th>
+      <th>Fechamento</th>
+      <th>Vencimento</th>
+      <th>Ativo</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for obj in object_list %}
+    <tr>
+      <td>{{ obj.name }}</td>
+      <td>{{ obj.brand }}</td>
+      <td>{{ obj.limit }}</td>
+      <td>{{ obj.closing_day }}</td>
+      <td>{{ obj.due_day }}</td>
+      <td>{{ obj.active|yesno:"Sim,Não" }}</td>
+      <td class="text-end">
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'finance:card_update' obj.pk %}">Editar</a>
+        <a class="btn btn-sm btn-outline-danger" href="{% url 'finance:card_delete' obj.pk %}">Excluir</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">Nenhum cartão cadastrado.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'finance/base.html' %}
+{% block title %}Contas{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Contas</h1>
+  <a href="{% url 'finance:account_create' %}" class="btn btn-primary">Nova Conta</a>
+</div>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Tipo</th>
+      <th>Saldo Inicial</th>
+      <th>Ativa</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for obj in object_list %}
+    <tr>
+      <td>{{ obj.name }}</td>
+      <td>{{ obj.get_type_display }}</td>
+      <td>{{ obj.initial_balance }}</td>
+      <td>{{ obj.active|yesno:"Sim,Não" }}</td>
+      <td class="text-end">
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'finance:account_update' obj.pk %}">Editar</a>
+        <a class="btn btn-sm btn-outline-danger" href="{% url 'finance:account_delete' obj.pk %}">Excluir</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">Nenhuma conta cadastrada.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

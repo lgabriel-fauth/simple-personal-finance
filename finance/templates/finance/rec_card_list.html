@@ -1,0 +1,44 @@
+{% extends 'finance/base.html' %}
+{% block title %}Recorrentes - Cartão{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Recorrentes - Cartão</h1>
+  <a class="btn btn-primary" href="{% url 'finance:rec_card_create' %}">Novo</a>
+</div>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Descrição</th>
+      <th>Cartão</th>
+      <th>Valor Total</th>
+      <th>Parcelas</th>
+      <th>Próxima Data</th>
+      <th>Ativo</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for obj in object_list %}
+    <tr>
+      <td>{{ obj.description }}</td>
+      <td>{{ obj.card.name }}</td>
+      <td>{{ obj.total_amount }}</td>
+      <td>{{ obj.installments_total }}</td>
+      <td>{{ obj.next_date }}</td>
+      <td>{{ obj.active|yesno:"Sim,Não" }}</td>
+      <td class="text-end">
+        <form method="post" action="{% url 'finance:rec_card_generate' obj.pk %}" class="d-inline">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+          <button class="btn btn-sm btn-success" type="submit">Gerar agora</button>
+        </form>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'finance:rec_card_update' obj.pk %}">Editar</a>
+        <a class="btn btn-sm btn-outline-danger" href="{% url 'finance:rec_card_delete' obj.pk %}">Excluir</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">Nenhuma recorrência de cartão.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

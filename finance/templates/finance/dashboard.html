@@ -1,0 +1,70 @@
+{% extends 'finance/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Dashboard</h1>
+
+<h2 class="h5">Saldos por Conta</h2>
+<div class="row g-3 mb-4">
+  {% for item in account_balances %}
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted">{{ item.account.name }}</div>
+        <div class="fs-4">{{ item.balance }}</div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">Sem contas cadastradas.</div>
+  {% endfor %}
+</div>
+
+<h2 class="h5">Despesas por Categoria ({{ month_start }} a {{ month_end }})</h2>
+<table class="table table-sm table-striped mb-4">
+  <thead><tr><th>Categoria</th><th class="text-end">Valor</th></tr></thead>
+  <tbody>
+  {% for cat, val in expenses_by_category.items %}
+  <tr><td>{{ cat }}</td><td class="text-end">{{ val }}</td></tr>
+  {% empty %}
+  <tr><td colspan="2">Sem despesas no período.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2 class="h5">Compras no Cartão (mês atual)</h2>
+<table class="table table-sm table-striped mb-4">
+  <thead><tr><th>Data</th><th>Cartão</th><th>Descrição</th><th>Parcela</th><th class="text-end">Valor</th></tr></thead>
+  <tbody>
+  {% for c in card_purchases %}
+  <tr>
+    <td>{{ c.date }}</td>
+    <td>{{ c.card.name }}</td>
+    <td>{{ c.description }}</td>
+    <td>{{ c.installment_number }}/{{ c.installments_total }}</td>
+    <td class="text-end">{{ c.total_amount }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="5">Sem compras no mês.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2 class="h5">Alertas de Vencimento (próximos 7 dias)</h2>
+<table class="table table-sm table-striped">
+  <thead><tr><th>Fatura</th><th>Vencimento</th><th>Status</th><th class="text-end">Ações</th></tr></thead>
+  <tbody>
+  {% for inv in upcoming_invoices %}
+  <tr>
+    <td>{{ inv.card.name }} {{ inv.year }}-{{ inv.month|stringformat:"02d" }}</td>
+    <td>{{ inv.due_date }}</td>
+    <td>{{ inv.get_status_display }}</td>
+    <td class="text-end">
+      <a class="btn btn-sm btn-outline-primary" href="{% url 'finance:invoice_detail' inv.pk %}">Ver</a>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="4">Sem alertas de vencimento.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

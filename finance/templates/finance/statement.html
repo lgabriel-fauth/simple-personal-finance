@@ -1,0 +1,53 @@
+{% extends 'finance/base.html' %}
+{% block title %}Extrato{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Extrato por Conta</h1>
+<form method="get" class="card card-body mb-3">
+  {{ form.as_p }}
+  <div>
+    <button type="submit" class="btn btn-primary">Filtrar</button>
+  </div>
+</form>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Conta</th>
+      <th>Descrição</th>
+      <th>Tipo</th>
+      <th>Categoria</th>
+      <th>Tags</th>
+      <th>Valor</th>
+      <th>Conciliado</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for obj in object_list %}
+    <tr>
+      <td>{{ obj.date }}</td>
+      <td>{{ obj.account.name }}</td>
+      <td>{{ obj.description }}</td>
+      <td>{{ obj.get_type_display }}</td>
+      <td>{{ obj.category|default:'-' }}</td>
+      <td>{% for t in obj.tags.all %}<span class="badge text-bg-light me-1">{{ t.name }}</span>{% empty %}-{% endfor %}</td>
+      <td>{{ obj.amount }}</td>
+      <td>{{ obj.reconciled|yesno:"Sim,Não" }}</td>
+      <td class="text-end">
+        <form method="post" action="{% url 'finance:transaction_toggle' obj.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+          {% if obj.reconciled %}
+          <button class="btn btn-sm btn-outline-warning" type="submit">Desfazer</button>
+          {% else %}
+          <button class="btn btn-sm btn-success" type="submit">Conciliar</button>
+          {% endif %}
+        </form>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="9">Sem lançamentos para os filtros aplicados.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

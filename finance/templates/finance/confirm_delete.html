@@ -1,0 +1,11 @@
+{% extends 'finance/base.html' %}
+{% block title %}Confirmar exclusão{% endblock %}
+{% block content %}
+<h1 class="h4">Confirmar exclusão</h1>
+<p>Tem certeza que deseja excluir este registro?</p>
+<form method="post">
+  {% csrf_token %}
+  <a href="javascript:history.back()" class="btn btn-secondary">Cancelar</a>
+  <button type="submit" class="btn btn-danger">Excluir</button>
+</form>
+{% endblock %}
