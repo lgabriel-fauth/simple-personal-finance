@@ -23,10 +23,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-*!mdi_ca$6lyw1dkrzyne8q+&#i=21%426dd=kq8pxfdsej8hb'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '192.168.1.101',
+    '187.52.82.197',
+    'simple-finance.ddns.net'
+]
 
+CORS_ALLOWED_ALL = True
 
 # Application definition
 
@@ -127,6 +134,11 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Authentication redirects
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/finance/'
+LOGOUT_REDIRECT_URL = '/login/'
 
 # Django REST Framework settings
 REST_FRAMEWORK = {
