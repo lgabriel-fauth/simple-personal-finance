@@ -11,10 +11,12 @@ from django.db import transaction as db_transaction
 from .forms import TransactionForm, TransferForm
 from .forms import PurchaseForm, InvoicePaymentForm, StatementFilterForm
 from .forms import RecurringTransactionForm, RecurringCardPurchaseForm
+from .forms import CardChargeForm
 from .models import Invoice, CardCharge, InvoicePayment, Category, Tag, RecurringTransaction, RecurringCardPurchase
 from datetime import date, timedelta
 from decimal import Decimal
 from django.db.models import Sum
+import calendar
 
 # Create your views here.
 
@@ -30,6 +32,72 @@ class UserCreateMixin:
         obj = form.save(commit=False)
         obj.user = self.request.user
         obj.save()
+        return super().form_valid(form)
+
+
+class CardChargeDeleteView(LoginRequiredMixin, generic.DeleteView):
+    model = CardCharge
+    template_name = "finance/confirm_delete.html"
+
+    def get_queryset(self):
+        obj = CardCharge.objects.filter(card__user=self.request.user).select_related("invoice")
+        return obj
+
+    def post(self, request, *args, **kwargs):
+        print('teste')
+        obj = self.get_object()
+        old_invoice = obj.invoice
+        obj.delete()
+        # Se a fatura ficou vazia, exclui; senão redireciona para o detalhe dela
+        try:
+            if old_invoice and not old_invoice.charges.exists() and not old_invoice.payments.exists():
+                old_invoice.delete()
+                next_url = reverse_lazy("finance:invoice_list")
+            else:
+                next_url = reverse_lazy("finance:invoice_detail", kwargs={"pk": old_invoice.pk})
+        except Exception:
+            next_url = reverse_lazy("finance:invoice_list")
+        messages.success(self.request, "Compra excluída com sucesso.")
+        return HttpResponseRedirect(next_url)
+
+class CardChargeUpdateView(LoginRequiredMixin, generic.UpdateView):
+    model = CardCharge
+    form_class = CardChargeForm
+    template_name = "finance/cardcharge_form.html"
+
+    def get_queryset(self):
+        return CardCharge.objects.filter(card__user=self.request.user).select_related("card", "invoice")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def get_success_url(self):
+        obj = self.object
+        return reverse_lazy("finance:invoice_detail", kwargs={"pk": obj.invoice_id})
+
+    def form_valid(self, form):
+        old_obj = self.get_object()
+        old_invoice = old_obj.invoice
+        obj = form.save(commit=False)
+        # Reatribui a fatura com base em card+date
+        inv = Invoice.assign_invoice_for(obj.card, obj.date)
+        if inv.status == Invoice.Status.CLOSED:
+            inv = inv.next_invoice()
+        obj.invoice = inv
+        obj.save()
+        form.save_m2m()
+        messages.success(self.request, "Lançamento atualizado com sucesso.")
+        # Se a fatura anterior ficou vazia (sem compras e sem pagamentos), exclui
+        try:
+            if old_invoice and old_invoice.pk != inv.pk:
+                has_charges = old_invoice.charges.exists()
+                has_payments = old_invoice.payments.exists()
+                if not has_charges and not has_payments:
+                    old_invoice.delete()
+        except Exception:
+            pass
         return super().form_valid(form)
 
 
@@ -160,7 +228,7 @@ class RecurringTransactionDeleteView(LoginRequiredMixin, generic.DeleteView):
     def get_queryset(self):
         return RecurringTransaction.objects.filter(user=self.request.user)
 
-    def delete(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         messages.success(self.request, "Recorrência excluída com sucesso.")
         return super().delete(request, *args, **kwargs)
 
@@ -227,7 +295,7 @@ class RecurringCardPurchaseDeleteView(LoginRequiredMixin, generic.DeleteView):
     def get_queryset(self):
         return RecurringCardPurchase.objects.filter(user=self.request.user)
 
-    def delete(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         messages.success(self.request, "Recorrência de cartão excluída com sucesso.")
         return super().delete(request, *args, **kwargs)
 
@@ -537,7 +605,8 @@ class TransferCreateView(LoginRequiredMixin, generic.FormView):
 def add_months(d: date, months: int) -> date:
     y = d.year + (d.month - 1 + months) // 12
     m = (d.month - 1 + months) % 12 + 1
-    day = min(d.day, 28)
+    last_day = calendar.monthrange(y, m)[1]
+    day = min(d.day, last_day)
     return date(y, m, day)
 
 

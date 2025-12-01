@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from datetime import date
+import calendar
 
 # Create your models here.
 
@@ -142,8 +143,11 @@ class Invoice(TimeStampedModel):
     def assign_invoice_for(card: "CreditCard", purchase_date: date):
         y = purchase_date.year
         m = purchase_date.month
-        # Compras após o dia de fechamento pertencem à fatura do próximo mês
-        if purchase_date.day > card.closing_day:
+        # Usa dia de fechamento efetivo do mês (limita ao último dia do mês)
+        from calendar import monthrange
+        eff_close = min(card.closing_day, monthrange(y, m)[1])
+        # Compras no dia de fechamento (ou após) pertencem à fatura do próximo mês
+        if purchase_date.day >= eff_close:
             if m == 12:
                 y += 1
                 m = 1
@@ -202,6 +206,37 @@ class CardCharge(TimeStampedModel):
 
     def __str__(self):
         return f"{self.description} ({self.installment_number}/{self.installments_total})"
+
+    def save(self, *args, **kwargs):
+        old_invoice = None
+        if self.pk:
+            try:
+                old = CardCharge.objects.select_related("invoice").get(pk=self.pk)
+                old_invoice = old.invoice
+            except CardCharge.DoesNotExist:
+                pass
+        # Garante fatura correta baseada em card+date
+        if self.card_id and self.date:
+            inv = Invoice.assign_invoice_for(self.card, self.date)
+            if inv.status == Invoice.Status.CLOSED:
+                inv = inv.next_invoice()
+            self.invoice = inv
+        super().save(*args, **kwargs)
+        # Remove fatura antiga se tiver ficado vazia
+        if old_invoice and (not self.invoice_id or old_invoice.pk != self.invoice_id):
+            if not old_invoice.charges.exists() and not old_invoice.payments.exists():
+                try:
+                    old_invoice.delete()
+                except Exception:
+                    pass
+
+    def post(self, *args, **kwargs):
+        # Limpa relações M2M antes de excluir o lançamento
+        try:
+            self.tags.clear()
+        except Exception:
+            pass
+        return super().delete(*args, **kwargs)
 
 
 class InvoicePayment(TimeStampedModel):
@@ -304,7 +339,11 @@ class RecurringCardPurchase(TimeStampedModel):
         from decimal import Decimal
         per_parcel = (self.total_amount / self.installments_total).quantize(Decimal("0.01")) if self.installments_total > 1 else self.total_amount
         for i in range(1, self.installments_total + 1):
-            cdate = date(nd.year + ((nd.month - 1 + (i - 1)) // 12), ((nd.month - 1 + (i - 1)) % 12) + 1, min(nd.day, 28))
+            cy = nd.year + ((nd.month - 1 + (i - 1)) // 12)
+            cm = ((nd.month - 1 + (i - 1)) % 12) + 1
+            last_day = calendar.monthrange(cy, cm)[1]
+            cday = min(nd.day, last_day)
+            cdate = date(cy, cm, cday)
             inv_i = Invoice.assign_invoice_for(self.card, cdate)
             if inv_i.status == Invoice.Status.CLOSED:
                 inv_i = inv_i.next_invoice()
@@ -321,7 +360,8 @@ class RecurringCardPurchase(TimeStampedModel):
         # advance month for next recurrence
         y = nd.year + (nd.month // 12)
         m = 1 if nd.month == 12 else nd.month + 1
-        d = min(self.day_of_month, 28)
+        last_day_next = calendar.monthrange(y, m)[1]
+        d = min(self.day_of_month, last_day_next)
         self.next_date = date(y, m, d)
         self.save(update_fields=["next_date"])
         return inv

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Transaction, Account, Category, CreditCard, Invoice, Tag, RecurringTransaction, RecurringCardPurchase
+from .models import Transaction, Account, Category, CreditCard, Invoice, Tag, RecurringTransaction, RecurringCardPurchase, CardCharge
 
 class TransactionForm(forms.ModelForm):
     class Meta:
@@ -11,6 +11,21 @@ class TransactionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if user is not None:
             self.fields["account"].queryset = Account.objects.filter(user=user, active=True)
+
+
+class CardChargeForm(forms.ModelForm):
+    class Meta:
+        model = CardCharge
+        fields = [
+            "card", "date", "description", "total_amount", "category", "tags",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            self.fields["card"].queryset = CreditCard.objects.filter(user=user, active=True)
+            self.fields["category"].queryset = Category.objects.filter(user=user, kind=Category.Kind.EXPENSE)
 
 
 class StatementFilterForm(forms.Form):

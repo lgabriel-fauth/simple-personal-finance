@@ -27,6 +27,10 @@ urlpatterns = [
     path("invoices/<int:pk>/pay/", views.InvoicePaymentCreateView.as_view(), name="invoice_payment"),
     path("invoices/<int:pk>/close/", views.InvoiceCloseView.as_view(), name="invoice_close"),
 
+    # Compras no cartão - editar lançamento
+    path("charges/<int:pk>/edit/", views.CardChargeUpdateView.as_view(), name="cardcharge_update"),
+    path("charges/<int:pk>/delete/", views.CardChargeDeleteView.as_view(), name="cardcharge_delete"),
+
     path("categories/", views.CategoryListView.as_view(), name="category_list"),
     path("categories/new/", views.CategoryCreateView.as_view(), name="category_create"),
     path("categories/<int:pk>/edit/", views.CategoryUpdateView.as_view(), name="category_update"),

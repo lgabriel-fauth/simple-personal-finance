@@ -49,6 +49,7 @@
       <th>Parcela</th>
       <th>Categoria</th>
       <th class="text-end">Valor</th>
+      <th class="text-end">Ações</th>
     </tr>
   </thead>
   <tbody>
@@ -59,9 +60,13 @@
       <td>{{ c.installment_number }}/{{ c.installments_total }}</td>
       <td>{{ c.category|default:"-" }}</td>
       <td class="text-end">{{ c.total_amount }}</td>
+      <td class="text-end">
+        <a href="{% url 'finance:cardcharge_update' c.pk %}" class="btn btn-sm btn-outline-secondary me-1">Editar</a>
+        <a href="{% url 'finance:cardcharge_delete' c.pk %}" class="btn btn-sm btn-outline-danger">Excluir</a>
+      </td>
     </tr>
     {% empty %}
-    <tr><td colspan="5">Nenhuma compra nesta fatura.</td></tr>
+    <tr><td colspan="6">Nenhuma compra nesta fatura.</td></tr>
     {% endfor %}
   </tbody>
 </table>
