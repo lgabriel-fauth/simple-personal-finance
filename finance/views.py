@@ -368,6 +368,10 @@ class CategoryDeleteView(LoginRequiredMixin, generic.DeleteView):
     def get_queryset(self):
         return Category.objects.filter(user=self.request.user)
 
+    def post(self, request, *args, **kwargs):
+        messages.success(self.request, "Categoria excluída com sucesso.")
+        return super().delete(request, *args, **kwargs)
+
 
 # Tag CRUD
 class TagListView(LoginRequiredMixin, generic.ListView):
@@ -471,6 +475,10 @@ class TagDeleteView(LoginRequiredMixin, generic.DeleteView):
     def get_queryset(self):
         return Tag.objects.filter(user=self.request.user)
 
+    def post(self, request, *args, **kwargs):
+        messages.success(self.request, "Tag excluída com sucesso.")
+        return super().delete(request, *args, **kwargs)
+
 
 class AccountListView(LoginRequiredMixin, UserQuerysetMixin, generic.ListView):
     model = Account
@@ -499,6 +507,10 @@ class AccountDeleteView(LoginRequiredMixin, UserQuerysetMixin, generic.DeleteVie
     model = Account
     success_url = reverse_lazy("finance:account_list")
     template_name = "finance/confirm_delete.html"
+    
+    def post(self, request, *args, **kwargs):
+        messages.success(self.request, "Conta excluída com sucesso.")
+        return super().delete(request, *args, **kwargs)
 
 
 class CreditCardListView(LoginRequiredMixin, UserQuerysetMixin, generic.ListView):
@@ -528,6 +540,10 @@ class CreditCardDeleteView(LoginRequiredMixin, UserQuerysetMixin, generic.Delete
     model = CreditCard
     success_url = reverse_lazy("finance:card_list")
     template_name = "finance/confirm_delete.html"
+
+    def post(self, request, *args, **kwargs):
+        messages.success(self.request, "Cartão de crédito excluído com sucesso.")
+        return super().delete(request, *args, **kwargs)
 
 
 class TransactionListView(LoginRequiredMixin, generic.ListView):
@@ -656,7 +672,7 @@ class InvoiceListView(LoginRequiredMixin, generic.ListView):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(card__user=self.request.user).select_related("card")
+        return qs.filter(card__user=self.request.user).select_related("card").order_by('year', 'month')
 
 
 class InvoiceDetailView(LoginRequiredMixin, generic.DetailView):
