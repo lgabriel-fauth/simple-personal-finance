@@ -4,6 +4,11 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3">Faturas</h1>
 </div>
+<div class="mb-3">
+  <a class="btn btn-sm btn-outline-secondary" href="?status=open">Abertas/Parciais</a>
+  <a class="btn btn-sm btn-outline-secondary" href="?status=closed">Fechadas</a>
+  
+</div>
 <table class="table table-striped">
   <thead>
     <tr>
@@ -19,7 +24,7 @@
     {% for inv in object_list %}
     <tr>
       <td>{{ inv.card.name }}</td>
-      <td>{{ inv.year }}-{{ inv.month|floatformat:0|add:""|stringformat:"02d" }}</td>
+      <td>{{ inv.year }}-{{ inv.month|stringformat:"02d" }}</td>
       <td>{{ inv.closing_date|default:"-" }}</td>
       <td>{{ inv.due_date|default:"-" }}</td>
       <td>{{ inv.get_status_display }}</td>

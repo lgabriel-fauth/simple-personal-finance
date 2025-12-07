@@ -81,18 +81,22 @@
       <th>Conta</th>
       <th>Tipo</th>
       <th class="text-end">Valor</th>
+      <th class="text-end">Ações</th>
     </tr>
   </thead>
   <tbody>
     {% for p in object.payments.all %}
     <tr>
       <td>{{ p.date }}</td>
-      <td>{{ p.account.name }}</td>
+      <td>{% if p.account %}{{ p.account.name }}{% else %}-{% endif %}</td>
       <td>{{ p.get_kind_display }}</td>
       <td class="text-end">{{ p.amount }}</td>
+      <td class="text-end">
+        <a href="{% url 'finance:invoice_payment_update' p.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+      </td>
     </tr>
     {% empty %}
-    <tr><td colspan="4">Nenhum pagamento registrado.</td></tr>
+    <tr><td colspan="5">Nenhum pagamento registrado.</td></tr>
     {% endfor %}
   </tbody>
 </table>

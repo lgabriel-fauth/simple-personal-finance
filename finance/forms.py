@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.models import User
 from .models import Transaction, Account, Category, CreditCard, Invoice, Tag, RecurringTransaction, RecurringCardPurchase, CardCharge
 
 class TransactionForm(forms.ModelForm):
@@ -11,6 +12,39 @@ class TransactionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if user is not None:
             self.fields["account"].queryset = Account.objects.filter(user=user, active=True)
+            self.fields["category"].queryset = Category.objects.filter(user=user)
+            self.fields["tags"].queryset = Tag.objects.filter(user=user)
+    
+    pass
+
+    
+
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["username", "email"]
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.get("instance")
+        super().__init__(*args, **kwargs)
+        # Bloqueia edição do email se confirmado
+        try:
+            if user and hasattr(user, "profile") and user.profile.email_confirmed:
+                self.fields["email"].disabled = True
+        except Exception:
+            pass
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        user = self.instance
+        try:
+            if hasattr(user, "profile") and user.profile.email_confirmed:
+                # mantém o email original se tentar alterar
+                return user.email
+        except Exception:
+            pass
+        return email
 
 
 class CardChargeForm(forms.ModelForm):
@@ -52,7 +86,7 @@ class RecurringTransactionForm(forms.ModelForm):
         model = RecurringTransaction
         fields = [
             "account", "type", "description", "amount", "category",
-            "frequency", "day_of_month", "next_date", "active", "end_date",
+            "frequency", "day_of_month", "start_date", "next_date", "active", "end_date",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -120,13 +154,14 @@ class PurchaseForm(forms.Form):
 
 
 class InvoicePaymentForm(forms.Form):
-    account = forms.ModelChoiceField(queryset=Account.objects.none(), label="Conta para pagar")
+    account = forms.ModelChoiceField(queryset=Account.objects.none(), label="Conta para pagar", required=False)
     date = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
     amount = forms.DecimalField(max_digits=14, decimal_places=2, min_value=0.01)
     kind = forms.ChoiceField(choices=(
         ("TOTAL", "Total"),
         ("PARTIAL", "Parcial"),
         ("ADVANCE", "Antecipação"),
+        ("DISCOUNT", "Desconto"),
     ))
 
     def __init__(self, *args, **kwargs):

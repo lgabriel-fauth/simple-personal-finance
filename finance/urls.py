@@ -4,6 +4,7 @@ from . import views
 app_name = "finance"
 
 urlpatterns = [
+    path("profile/", views.ProfileView.as_view(), name="profile"),
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("dashboard/", views.DashboardView.as_view(), name="dashboard"),
     path("accounts/", views.AccountListView.as_view(), name="account_list"),
@@ -18,6 +19,8 @@ urlpatterns = [
 
     path("transactions/", views.TransactionListView.as_view(), name="transaction_list"),
     path("transactions/new/", views.TransactionCreateView.as_view(), name="transaction_create"),
+    path("transactions/<int:pk>/edit/", views.TransactionUpdateView.as_view(), name="transaction_update"),
+    path("transactions/<int:pk>/delete/", views.TransactionDeleteView.as_view(), name="transaction_delete"),
     path("transfers/new/", views.TransferCreateView.as_view(), name="transfer_create"),
     path("transactions/<int:pk>/toggle/", views.ToggleReconciliationView.as_view(), name="transaction_toggle"),
 
@@ -26,6 +29,7 @@ urlpatterns = [
     path("invoices/<int:pk>/", views.InvoiceDetailView.as_view(), name="invoice_detail"),
     path("invoices/<int:pk>/pay/", views.InvoicePaymentCreateView.as_view(), name="invoice_payment"),
     path("invoices/<int:pk>/close/", views.InvoiceCloseView.as_view(), name="invoice_close"),
+    path("payments/<int:pk>/edit/", views.InvoicePaymentUpdateView.as_view(), name="invoice_payment_update"),
 
     # Compras no cartão - editar lançamento
     path("charges/<int:pk>/edit/", views.CardChargeUpdateView.as_view(), name="cardcharge_update"),

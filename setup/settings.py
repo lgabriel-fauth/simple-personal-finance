@@ -33,7 +33,7 @@ ALLOWED_HOSTS = [
     'simple-finance.ddns.net'
 ]
 
-CORS_ALLOWED_ALL = True
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Application definition
 

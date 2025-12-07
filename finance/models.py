@@ -3,6 +3,8 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import date
 import calendar
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 # Create your models here.
 
@@ -12,6 +14,23 @@ class TimeStampedModel(models.Model):
 
     class Meta:
         abstract = True
+
+
+class Profile(TimeStampedModel):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    email_confirmed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Perfil de {self.user.username}"
+
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        try:
+            Profile.objects.create(user=instance)
+        except Exception:
+            pass
 
 
 class Account(TimeStampedModel):
@@ -99,6 +118,7 @@ class Transaction(TimeStampedModel):
     tags = models.ManyToManyField(Tag, blank=True)
     reconciled = models.BooleanField(default=False)
     transfer_key = models.CharField(max_length=36, blank=True, help_text="Par para transferências")
+    recurring_transaction = models.ForeignKey("RecurringTransaction", on_delete=models.SET_NULL, null=True, blank=True, related_name="generated_transactions", help_text="Recorrente que gerou esta transação")
 
     class Meta:
         ordering = ["-date", "-id"]
@@ -159,8 +179,13 @@ class Invoice(TimeStampedModel):
             inv.closing_date = date(y, m, min(card.closing_day, 28))
         except Exception:
             inv.closing_date = None
-        # Vencimento no mês seguinte ao mês da fatura
-        vy, vm = (y + 1, 1) if m == 12 else (y, m + 1)
+        # Vencimento: mesmo mês se fechamento <= vencimento, próximo mês se fechamento > vencimento
+        if card.closing_day <= card.due_day:
+            # Mesmo mês do fechamento
+            vy, vm = y, m
+        else:
+            # Próximo mês
+            vy, vm = (y + 1, 1) if m == 12 else (y, m + 1)
         try:
             inv.due_date = date(vy, vm, min(card.due_day, 28))
         except Exception:
@@ -181,7 +206,13 @@ class Invoice(TimeStampedModel):
             inv.closing_date = date(y, m, min(self.card.closing_day, 28))
         except Exception:
             inv.closing_date = None
-        vy, vm = (y + 1, 1) if m == 12 else (y, m + 1)
+        # Vencimento: mesmo mês se fechamento <= vencimento, próximo mês se fechamento > vencimento
+        if self.card.closing_day <= self.card.due_day:
+            # Mesmo mês do fechamento
+            vy, vm = y, m
+        else:
+            # Próximo mês
+            vy, vm = (y + 1, 1) if m == 12 else (y, m + 1)
         try:
             inv.due_date = date(vy, vm, min(self.card.due_day, 28))
         except Exception:
@@ -244,9 +275,10 @@ class InvoicePayment(TimeStampedModel):
         TOTAL = "TOTAL", "Total"
         PARTIAL = "PARTIAL", "Parcial"
         ADVANCE = "ADVANCE", "Antecipação"
+        DISCOUNT = "DISCOUNT", "Desconto"
 
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="payments")
-    account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name="invoice_payments")
+    account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name="invoice_payments", null=True, blank=True)
     date = models.DateField(default=timezone.now)
     amount = models.DecimalField(max_digits=14, decimal_places=2)
     kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.TOTAL)
@@ -270,6 +302,7 @@ class RecurringTransaction(TimeStampedModel):
     category = models.ForeignKey(Category, on_delete=models.PROTECT, null=True, blank=True)
     frequency = models.CharField(max_length=10, choices=Frequency.choices, default=Frequency.MONTHLY)
     day_of_month = models.PositiveSmallIntegerField(default=1)
+    start_date = models.DateField(default=timezone.now, help_text="Data inicial do lançamento recorrente")
     next_date = models.DateField(default=timezone.now)
     active = models.BooleanField(default=True)
     end_date = models.DateField(null=True, blank=True)
@@ -294,6 +327,7 @@ class RecurringTransaction(TimeStampedModel):
             description=self.description,
             amount=self.amount,
             category=self.category,
+            recurring_transaction=self,
         )
         # advance month
         y = nd.year + (nd.month // 12)

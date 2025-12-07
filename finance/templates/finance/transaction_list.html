@@ -17,6 +17,7 @@
       <th>Tipo</th>
       <th>Valor</th>
       <th>Conciliado</th>
+      <th class="text-end">Ações</th>
     </tr>
   </thead>
   <tbody>
@@ -28,9 +29,13 @@
       <td>{{ obj.get_type_display }}</td>
       <td>{{ obj.amount }}</td>
       <td>{{ obj.reconciled|yesno:"Sim,Não" }}</td>
+      <td class="text-end">
+        <a class="btn btn-sm btn-outline-primary me-1" href="{% url 'finance:transaction_update' obj.pk %}">Editar</a>
+        <a class="btn btn-sm btn-outline-danger" href="{% url 'finance:transaction_delete' obj.pk %}">Excluir</a>
+      </td>
     </tr>
     {% empty %}
-    <tr><td colspan="6">Nenhum lançamento.</td></tr>
+    <tr><td colspan="7">Nenhum lançamento.</td></tr>
     {% endfor %}
   </tbody>
 </table>
