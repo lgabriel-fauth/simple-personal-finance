@@ -29,7 +29,9 @@ urlpatterns = [
     path("invoices/<int:pk>/", views.InvoiceDetailView.as_view(), name="invoice_detail"),
     path("invoices/<int:pk>/pay/", views.InvoicePaymentCreateView.as_view(), name="invoice_payment"),
     path("invoices/<int:pk>/close/", views.InvoiceCloseView.as_view(), name="invoice_close"),
+    path("invoices/<int:pk>/open/", views.InvoiceOpenView.as_view(), name="invoice_open"),
     path("payments/<int:pk>/edit/", views.InvoicePaymentUpdateView.as_view(), name="invoice_payment_update"),
+    path("payments/<int:pk>/delete/", views.InvoicePaymentDeleteView.as_view(), name="invoice_payment_delete"),
 
     # Compras no cartão - editar lançamento
     path("charges/<int:pk>/edit/", views.CardChargeUpdateView.as_view(), name="cardcharge_update"),

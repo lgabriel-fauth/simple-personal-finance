@@ -10,6 +10,11 @@
       {% csrf_token %}
       <button type="submit" class="btn btn-sm btn-warning">Fechar Fatura</button>
     </form>
+    {% elif object.status == 'CLOSED' %}
+    <form method="post" action="{% url 'finance:invoice_open' object.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-secondary">Abrir Fatura</button>
+    </form>
     {% endif %}
   </div>
 </div>
@@ -93,6 +98,7 @@
       <td class="text-end">{{ p.amount }}</td>
       <td class="text-end">
         <a href="{% url 'finance:invoice_payment_update' p.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+        <a href="{% url 'finance:invoice_payment_delete' p.pk %}" class="btn btn-sm btn-outline-danger">Excluir</a>
       </td>
     </tr>
     {% empty %}

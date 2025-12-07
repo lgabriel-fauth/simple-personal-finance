@@ -199,6 +199,18 @@ class InvoiceCloseView(LoginRequiredMixin, View):
         return HttpResponseRedirect(reverse_lazy("finance:invoice_detail", kwargs={"pk": pk}))
 
 
+class InvoiceOpenView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        inv = Invoice.objects.filter(pk=pk, card__user=request.user).select_related("card").first()
+        if not inv:
+            return HttpResponseForbidden()
+        if inv.status == Invoice.Status.CLOSED:
+            inv.status = Invoice.Status.OPEN
+            inv.save()
+            messages.success(request, "Fatura reaberta com sucesso.")
+        return HttpResponseRedirect(reverse_lazy("finance:invoice_detail", kwargs={"pk": pk}))
+
+
 class StatementView(LoginRequiredMixin, generic.TemplateView):
     template_name = "finance/statement.html"
 
@@ -1164,3 +1176,67 @@ class InvoicePaymentUpdateView(LoginRequiredMixin, generic.FormView):
 
         messages.success(self.request, "Pagamento atualizado com sucesso.")
         return super().form_valid(form)
+
+
+class InvoicePaymentDeleteView(LoginRequiredMixin, generic.DeleteView):
+    model = InvoicePayment
+    template_name = "finance/confirm_delete.html"
+
+    def get_object(self):
+        return InvoicePayment.objects.filter(pk=self.kwargs["pk"]).select_related("invoice__card", "account").first()
+
+    def dispatch(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not obj or obj.invoice.card.user_id != request.user.id:
+            return HttpResponseForbidden()
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        obj = self.object
+        return reverse_lazy("finance:invoice_detail", kwargs={"pk": obj.invoice_id})
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if not self.object:
+            return HttpResponseForbidden()
+
+        inv = self.object.invoice
+        old_account = self.object.account
+        old_date = self.object.date
+        old_amount = self.object.amount
+        old_kind = self.object.kind
+
+        tx_desc = f"Pagamento fatura {inv.card.name} {inv.month:02d}/{inv.year}"
+
+        with db_transaction.atomic():
+            # Remove transação correspondente quando não é desconto
+            if old_kind != "DISCOUNT":
+                tx = Transaction.objects.filter(
+                    user=request.user,
+                    account=old_account,
+                    date=old_date,
+                    amount=old_amount,
+                    description=tx_desc,
+                    type=Transaction.TxType.OUTCOME,
+                ).first()
+                if tx:
+                    tx.delete()
+
+            # Exclui pagamento
+            self.object.delete()
+
+            # Recalcula status da fatura
+            inv.refresh_from_db()
+            bal = inv.balance()
+            if bal <= 0 and inv.total_payments() > 0:
+                inv.status = Invoice.Status.PAID
+            elif inv.total_payments() > 0:
+                inv.status = Invoice.Status.PARTIAL
+            else:
+                # Se não há pagamentos, volta para OPEN se estava PAID
+                if inv.status in [Invoice.Status.PAID, Invoice.Status.PARTIAL]:
+                    inv.status = Invoice.Status.OPEN
+            inv.save()
+
+        messages.success(request, "Pagamento excluído com sucesso.")
+        return HttpResponseRedirect(self.get_success_url())
