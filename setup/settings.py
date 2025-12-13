@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'api',
-    'finance'
+    'finance',
+    'finance_v2'
 ]
 
 MIDDLEWARE = [

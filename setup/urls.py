@@ -24,6 +24,7 @@ urlpatterns = [
     path('', RedirectView.as_view(pattern_name='finance:dashboard', permanent=False), name='root'),
     path('api/', include('api.urls')),
     path('finance/', include('finance.urls', namespace='finance')),
+    path('finance/v2/', include('finance_v2.urls')),
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 ]
